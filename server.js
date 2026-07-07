@@ -19,19 +19,7 @@ function requireAuth(req, res, next) {
   next();
 }
 
-/**
- * Point Tai's `ShipmentDetailUpdateUrl` (Integration Type: "Public API
- * Webhooks", under Source Group "Other") at this endpoint. It fires on
- * shipment creation AND every subsequent edit, so this handler:
- *
- *   1. Skips shipments that aren't Sprinter/Straight Truck equipment
- *   2. Skips shipments the dispatcher hasn't flagged with a
- *      `SYLECTUS` reference number (see mapping.js TRIGGER_REFERENCE_TYPE)
- *   3. Skips shipments already posted, so later unrelated edits don't
- *      double-post
- */
 app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
-  // Acknowledge immediately -- Tai does not retry, and expects a fast 200.
   res.status(200).send("received");
 
   const shipment = req.body;
@@ -39,11 +27,15 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
 
   try {
     if (!isEligibleForSylectus(shipment)) {
-      return; // wrong equipment type, or dispatcher hasn't flagged it yet
+      console.log(
+        `Shipment ${shipment.shipmentId} skipped -- trailerType is "${shipment.trailerType}", ` +
+          `reference numbers: ${JSON.stringify(shipment.shipmentReferenceNumbers)}`
+      );
+      return;
     }
 
     if (postedStore.alreadyPosted(shipment.shipmentId)) {
-      return; // already posted on a previous update to this shipment
+      return;
     }
 
     const { order, post } = mapShipmentToSylectusOrder(shipment, {
@@ -83,9 +75,6 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
       `Shipment ${shipment.shipmentId} -> Sylectus order ${created.OrderID} posted and reference written back to Tai.`
     );
   } catch (err) {
-    // TODO: replace with your real alerting (Slack webhook, email, etc.)
-    // Since Tai already got its 200, a silent failure here just means the
-    // load never shows as posted in Tai -- make sure this is loud.
     console.error(`Failed to bridge shipment ${shipment?.shipmentId} to Sylectus:`, err.message);
   }
 });
