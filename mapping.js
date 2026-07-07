@@ -4,19 +4,34 @@
  * expect.
  */
 
-const TRAILER_TYPE_TO_VEHICLE_SIZE = {
-  // "Sprinter Van | Dry": 1,
-  // TODO: fill in from your Sylectus vehicle-size list
-};
+const VEHICLE_SIZE_KEYWORDS = [
+  { keyword: "Sprinter", vehicleSize: 1 }, // Cargo Van
+  { keyword: "Cargo Van", vehicleSize: 1 },
+  { keyword: "Small Straight", vehicleSize: 2 },
+  { keyword: "Large Straight", vehicleSize: 3 },
+  { keyword: "Tractor", vehicleSize: 4 },
+  { keyword: "Flatbed", vehicleSize: 5 },
+];
 
-const LOAD_TYPE_MAP = {
-  LTL: 30,
-  TL: 20,
-  Reefer: 60,
-  Flatbed: 50,
-  CargoVan: 140,
-  Sprinter: 150,
-};
+function getVehicleSize(trailerType) {
+  const type = trailerType || "";
+  const match = VEHICLE_SIZE_KEYWORDS.find((v) => type.toLowerCase().includes(v.keyword.toLowerCase()));
+  return match?.vehicleSize;
+}
+
+const LOAD_TYPE_KEYWORDS = [
+  { keyword: "Sprinter", loadType: 150 },
+  { keyword: "Small Straight", loadType: 70 },
+  { keyword: "Large Straight", loadType: 80 },
+  { keyword: "Flatbed", loadType: 50 },
+  { keyword: "Reefer", loadType: 60 },
+];
+
+function getLoadType(trailerType, defaultLoadType) {
+  const type = trailerType || "";
+  const match = LOAD_TYPE_KEYWORDS.find((v) => type.toLowerCase().includes(v.keyword.toLowerCase()));
+  return match?.loadType || defaultLoadType;
+}
 
 const CUSTOMER_CODE_MAP = {
   // [Tai organizationId]: "sylectusInternalCustomerCode"
@@ -54,11 +69,11 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
     );
   }
 
-  const vehicleSize = TRAILER_TYPE_TO_VEHICLE_SIZE[shipment.trailerType];
+  const vehicleSize = getVehicleSize(shipment.trailerType);
   if (!vehicleSize) {
     throw new Error(
       `No Sylectus vehicleSize mapped for trailerType "${shipment.trailerType}". ` +
-        `Add it to TRAILER_TYPE_TO_VEHICLE_SIZE in mapping.js.`
+        `Add it to VEHICLE_SIZE_KEYWORDS in mapping.js.`
     );
   }
 
@@ -83,7 +98,7 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
     },
   };
 
-  const loadType = LOAD_TYPE_MAP[shipment.trailerType] || LOAD_TYPE_MAP[shipment.shipmentType] || defaultLoadType;
+  const loadType = getLoadType(shipment.trailerType, defaultLoadType);
 
   const expiry = new Date(Date.now() + defaultExpiryHours * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
 
