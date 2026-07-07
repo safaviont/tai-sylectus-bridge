@@ -2,33 +2,14 @@
  * Field mapping between Tai's `ShipmentDetails` webhook payload (v3, the
  * default) and the inputs Sylectus's `createOrder` / `postOrder` mutations
  * expect.
- *
- * Two things you MUST fill in before this works end-to-end — both are
- * business configuration, not code, so they live in the tables below:
- *
- * 1. TRAILER_TYPE_TO_VEHICLE_SIZE — Sylectus's `vehicleSize` is an integer
- *    index into *your company's own* custom vehicle-size list (1 = first
- *    item in your list, 2 = second, etc). Only you can look that list up
- *    in Sylectus (Settings) and fill in the mapping from Tai's
- *    `trailerType` enum values.
- *
- * 2. CUSTOMER_CODE_MAP — createOrder's stops need a Sylectus
- *    `internalCustomerCode` (pabcode), which is Sylectus-internal and has
- *    no equivalent in Tai's payload. Populate this by matching Tai
- *    `organizationId` -> Sylectus pabcode for your regular customers, OR
- *    switch to raw `address` stops once you confirm that sub-schema with
- *    Sylectus support (see sylectusClient.js TODO).
  */
 
 const TRAILER_TYPE_TO_VEHICLE_SIZE = {
-  // "DryVan": 1,
-  // "Flatbed": 2,
-  // "Reefer": 3,
+  // "Sprinter Van | Dry": 1,
   // TODO: fill in from your Sylectus vehicle-size list
 };
 
 const LOAD_TYPE_MAP = {
-  // Tai shipmentType/trailerType -> Sylectus postOrder loadType code
   LTL: 30,
   TL: 20,
   Reefer: 60,
@@ -41,26 +22,17 @@ const CUSTOMER_CODE_MAP = {
   // [Tai organizationId]: "sylectusInternalCustomerCode"
 };
 
-// Only these Tai `trailerType` values are eligible for Sylectus posting.
-// TODO: confirm the exact enum strings Tai sends -- these are best
-// guesses based on Tai's naming conventions (e.g. "DryVan", "Reefer").
-// Check a real ShipmentDetailUpdateUrl payload for a Sprinter/Straight
-// Truck load and adjust if these don't match.
-const ELIGIBLE_TRAILER_TYPES = ["Sprinter", "SmallStraight", "LargeStraight"];
+const ELIGIBLE_TRAILER_KEYWORDS = ["Sprinter", "Straight"];
 
-// The dispatcher flags a shipment as "post this to Sylectus" by adding a
-// reference number of this type (any value) in Tai. Change this to
-// whatever reference type name is easiest for your dispatchers to use.
-const TRIGGER_REFERENCE_TYPE = process.env.TRIGGER_REFERENCE_TYPE || "SYLECTUS";
+const TRIGGER_KEYWORD = process.env.TRIGGER_REFERENCE_TYPE || "SYLECTUS";
 
-/**
- * Returns true if this shipment should be posted to Sylectus: right
- * equipment type AND the dispatcher has flagged it via reference number.
- */
 function isEligibleForSylectus(shipment) {
-  const rightEquipment = ELIGIBLE_TRAILER_TYPES.includes(shipment.trailerType);
-  const flagged = (shipment.shipmentReferenceNumbers || []).some(
-    (ref) => ref.referenceType?.toUpperCase() === TRIGGER_REFERENCE_TYPE.toUpperCase()
+  const trailerType = shipment.trailerType || "";
+  const rightEquipment = ELIGIBLE_TRAILER_KEYWORDS.some((kw) =>
+    trailerType.toLowerCase().includes(kw.toLowerCase())
+  );
+  const flagged = (shipment.shipmentReferenceNumbers || []).some((ref) =>
+    (ref.value || "").toUpperCase().includes(TRIGGER_KEYWORD.toUpperCase())
   );
   return rightEquipment && flagged;
 }
