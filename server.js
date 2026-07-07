@@ -23,7 +23,7 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
   res.status(200).send("received");
 
   const shipment = req.body;
-  console.log(`Tai shipment-update payload for shipment ${shipment?.shipmentId}`);
+  console.log(`Tai shipment-update payload for shipment ${shipment?.shipmentId}:`, JSON.stringify(shipment, null, 2));
 
   try {
     if (!isEligibleForSylectus(shipment)) {
