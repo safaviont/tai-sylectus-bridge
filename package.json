@@ -1,0 +1,16 @@
+{
+  "name": "tai-sylectus-bridge",
+  "version": "0.1.0",
+  "description": "Webhook bridge: posts loads to Sylectus when they are posted from the Tai TMS (AWOL) Truckload Volume Quoting screen, and writes the Sylectus reference number back to Tai.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^2.7.0"
+  }
+}
