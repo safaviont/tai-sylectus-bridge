@@ -83,3 +83,59 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
   if (maxExpected && totalWeight > maxExpected) {
     console.warn(
       `Shipment ${shipment.shipmentId}: weight ${totalWeight} lbs looks high for trailerType ` +
+        `"${shipment.trailerType}" (vehicleSize ${vehicleSize}, expected under ~${maxExpected} lbs). ` +
+        `Posting anyway -- double check this one manually.`
+    );
+  }
+
+  const toAddress = (stop) => ({
+    name: stop.companyName || "",
+    addrLine1: stop.streetAddress || "",
+    city: stop.city || "",
+    stateProvince: stop.state || "",
+    postalCode: stop.zipCode || "",
+    countryCode: stop.country || "USA",
+  });
+
+  const order = {
+    shipmentNumber: String(shipment.shipmentId),
+    refNum1: shipment.shipmentReferenceNumbers?.[0]?.value || "",
+    equipmentNumber: "",
+    vehicleSize,
+    quantity: String(totalPieces || 1),
+    quantityUOM,
+    weight: String(totalWeight || 0),
+    weightUOM,
+    linehaulRate: String(shipment.totalSell ?? 0),
+    fuelSurchargeRate: "0",
+    totalRate: String(shipment.totalSell ?? 0),
+    billingTerms: "3",
+    authPABContact: BILLING_CONTACT_CODE,
+    billTo: BILLING_CONTACT_CODE,
+    pickup: {
+      address: toAddress(pickup),
+      scheduledDate: pickup.appointmentReadyDateTime || pickup.estimatedReadyDateTime,
+    },
+    drop: {
+      address: toAddress(delivery),
+      scheduledDate: delivery.appointmentReadyDateTime || delivery.estimatedReadyDateTime,
+    },
+  };
+
+  const loadType = getLoadType(shipment.trailerType, defaultLoadType);
+
+  const expiry = new Date(Date.now() + defaultExpiryHours * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+
+  const post = {
+    currencyType: "U",
+    expiryDateTime: expiry,
+    loadType,
+    notes: "",
+    postingAmount: Number(shipment.totalSell ?? 0),
+    postToNewAuthority: true,
+  };
+
+  return { order, post };
+}
+
+module.exports = { mapShipmentToSylectusOrder, isEligibleForSylectus };
