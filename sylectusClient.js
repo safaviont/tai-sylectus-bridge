@@ -35,9 +35,6 @@ async function createOrder({ corpId, userId, order }) {
           refNum1: "${escape(order.refNum1 || "")}",
           equipmentNumber: "${escape(order.equipmentNumber || "")}",
           vehicleSize: ${order.vehicleSize},
-          quantity: "${escape(order.quantity || "1")}",
-          weight: "${escape(order.weight || "0")}",
-          weightUOM: ${order.weightUOM || 1},
           rate: {
             fuelSurchargeRate: "${order.fuelSurchargeRate || "0"}"
             linehaulRate: "${order.linehaulRate || "0"}"
@@ -46,20 +43,48 @@ async function createOrder({ corpId, userId, order }) {
             bookingSource: "3"
             authPABContact: "${order.authPABContact}"
             billTo: "${order.billTo}"
+            items: {
+              item: {
+                stopSequence: "1",
+                quantities: {
+                  quantity: "${escape(order.quantity || "1")}",
+                  quantityUOM: "${escape(order.quantityUOM || "PIECES")}"
+                },
+                weights: {
+                  weight: "${escape(order.weight || "0")}",
+                  weightQualifier: "1",
+                  weightUOM: ${order.weightUOM || 1}
+                }
+              }
+            }
             stops: {
               stopCount: "2"
               stop: [
                 {
                   stopSequence: "1"
                   stopType: "Pickup"
-                  internalCustomerCode: "${order.pickup.internalCustomerCode}"
                   dates: { scheduledDate: "${order.pickup.scheduledDate}" }
+                  address: {
+                    name: "${escape(order.pickup.address.name)}"
+                    addrLine1: "${escape(order.pickup.address.addrLine1)}"
+                    city: "${escape(order.pickup.address.city)}"
+                    stateProvince: "${escape(order.pickup.address.stateProvince)}"
+                    postalCode: "${escape(order.pickup.address.postalCode)}"
+                    countryCode: "${escape(order.pickup.address.countryCode)}"
+                  }
                 }
                 {
                   stopSequence: "2"
                   stopType: "drop"
-                  internalCustomerCode: "${order.drop.internalCustomerCode}"
                   dates: { scheduledDate: "${order.drop.scheduledDate}" }
+                  address: {
+                    name: "${escape(order.drop.address.name)}"
+                    addrLine1: "${escape(order.drop.address.addrLine1)}"
+                    city: "${escape(order.drop.address.city)}"
+                    stateProvince: "${escape(order.drop.address.stateProvince)}"
+                    postalCode: "${escape(order.drop.address.postalCode)}"
+                    countryCode: "${escape(order.drop.address.countryCode)}"
+                  }
                 }
               ]
             }
