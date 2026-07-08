@@ -24,16 +24,6 @@ async function callSylectus(query) {
   return json.data;
 }
 
-/**
- * Creates an order in Sylectus. Returns { orderId, status, errorCode }.
- *
- * NOTE: `order.pickup` / `order.drop` here use `internalCustomerCode`.
- * TODO: confirm the raw `address` sub-schema with Sylectus support
- * (sylectus.techsupport@omnitracs.com) if you don't have pre-mapped
- * Sylectus contact codes for Tai customers/locations. Once confirmed,
- * swap the `internalCustomerCode` lines below for an `address: { ... }`
- * block per stop.
- */
 async function createOrder({ corpId, userId, order }) {
   const query = `mutation { createOrder
     (
@@ -45,6 +35,9 @@ async function createOrder({ corpId, userId, order }) {
           refNum1: "${escape(order.refNum1 || "")}",
           equipmentNumber: "${escape(order.equipmentNumber || "")}",
           vehicleSize: ${order.vehicleSize},
+          quantity: "${escape(order.quantity || "1")}",
+          weight: "${escape(order.weight || "0")}",
+          weightUOM: ${order.weightUOM || 1},
           rate: {
             fuelSurchargeRate: "${order.fuelSurchargeRate || "0"}"
             linehaulRate: "${order.linehaulRate || "0"}"
@@ -81,7 +74,6 @@ async function createOrder({ corpId, userId, order }) {
   return data.createOrder;
 }
 
-/** Posts an already-created order to the Sylectus load board. */
 async function postOrder({ corpId, userId, proNumber, post }) {
   const query = `mutation { postOrder
     (
@@ -104,7 +96,6 @@ async function postOrder({ corpId, userId, proNumber, post }) {
   return data.postOrder;
 }
 
-/** Removes a posting from the Sylectus load board. */
 async function unpostOrder({ corpId, userId, proNumbers }) {
   const list = proNumbers.join(",");
   const query = `mutation { unPostOrder
