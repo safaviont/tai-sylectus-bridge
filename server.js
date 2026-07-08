@@ -10,10 +10,16 @@ app.use(express.json({ limit: "2mb" }));
 
 const PORT = process.env.PORT || 3000;
 
+app.use((req, res, next) => {
+  console.log(`Incoming: ${req.method} ${req.path} | Authorization header: "${req.headers["authorization"]}"`);
+  next();
+});
+
 function requireAuth(req, res, next) {
   const expected = process.env.TAI_WEBHOOK_SECRET;
   const got = req.headers["authorization"];
   if (!expected || got !== expected) {
+    console.log(`Rejected: expected "${expected}" but got "${got}"`);
     return res.status(401).send("Unauthorized");
   }
   next();
