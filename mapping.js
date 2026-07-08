@@ -1,11 +1,5 @@
-/**
- * Field mapping between Tai's `ShipmentDetails` webhook payload (v3, the
- * default) and the inputs Sylectus's `createOrder` / `postOrder` mutations
- * expect.
- */
-
 const VEHICLE_SIZE_KEYWORDS = [
-  { keyword: "Sprinter", vehicleSize: 1 }, // Cargo Van
+  { keyword: "Sprinter", vehicleSize: 1 },
   { keyword: "Cargo Van", vehicleSize: 1 },
   { keyword: "Small Straight", vehicleSize: 2 },
   { keyword: "Large Straight", vehicleSize: 3 },
@@ -53,8 +47,8 @@ function isEligibleForSylectus(shipment) {
 }
 
 function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHours }) {
-  const pickup = shipment.stops.find((s) => s.stopType === "Pickup");
-  const delivery = shipment.stops.find((s) => s.stopType === "Delivery");
+  const pickup = shipment.stops.find((s) => s.stopType === "First Pickup");
+  const delivery = shipment.stops.find((s) => s.stopType === "Last Drop");
 
   if (!pickup || !delivery) {
     throw new Error(`Shipment ${shipment.shipmentId} is missing a Pickup or Delivery stop`);
