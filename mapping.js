@@ -1,31 +1,41 @@
-const VEHICLE_SIZE_KEYWORDS = [
-  { keyword: "Sprinter", vehicleSize: 1 },
-  { keyword: "Cargo Van", vehicleSize: 1 },
-  { keyword: "Small Straight", vehicleSize: 2 },
-  { keyword: "Large Straight", vehicleSize: 3 },
-  { keyword: "Tractor", vehicleSize: 4 },
-  { keyword: "Flatbed", vehicleSize: 5 },
-];
+const SMALL_STRAIGHT_MAX_FEET = 16;
+
+function classifyTrailer(trailerType) {
+  const type = trailerType || "";
+  const lower = type.toLowerCase();
+
+  if (lower.includes("sprinter") || lower.includes("cargo van")) {
+    return { vehicleSize: 1, loadType: 150 };
+  }
+  if (lower.includes("straight")) {
+    const feetMatch = type.match(/(\d+)\s*ft/i);
+    const feet = feetMatch ? parseInt(feetMatch[1], 10) : null;
+    if (feet !== null && feet <= SMALL_STRAIGHT_MAX_FEET) {
+      return { vehicleSize: 2, loadType: 70 };
+    }
+    return { vehicleSize: 3, loadType: 80 };
+  }
+  if (lower.includes("tractor")) {
+    return { vehicleSize: 4, loadType: 20 };
+  }
+  if (lower.includes("flatbed")) {
+    return { vehicleSize: 5, loadType: 50 };
+  }
+  if (lower.includes("reefer")) {
+    return { vehicleSize: null, loadType: 60 };
+  }
+  return { vehicleSize: null, loadType: null };
+}
 
 function getVehicleSize(trailerType) {
-  const type = trailerType || "";
-  const match = VEHICLE_SIZE_KEYWORDS.find((v) => type.toLowerCase().includes(v.keyword.toLowerCase()));
-  return match?.vehicleSize;
+  return classifyTrailer(trailerType).vehicleSize;
 }
-
-const LOAD_TYPE_KEYWORDS = [
-  { keyword: "Sprinter", loadType: 150 },
-  { keyword: "Small Straight", loadType: 70 },
-  { keyword: "Large Straight", loadType: 80 },
-  { keyword: "Flatbed", loadType: 50 },
-  { keyword: "Reefer", loadType: 60 },
-];
 
 function getLoadType(trailerType, defaultLoadType) {
-  const type = trailerType || "";
-  const match = LOAD_TYPE_KEYWORDS.find((v) => type.toLowerCase().includes(v.keyword.toLowerCase()));
-  return match?.loadType || defaultLoadType;
+  return classifyTrailer(trailerType).loadType || defaultLoadType;
 }
+
+const BILLING_CONTACT_CODE = process.env.SYLECTUS_BILLING_CONTACT_CODE || "REPLACE_WITH_PLG_CODE";
 
 const CUSTOMER_CODE_MAP = {
   // [Tai organizationId]: "sylectusInternalCustomerCode"
@@ -45,6 +55,12 @@ function isEligibleForSylectus(shipment) {
   );
   return rightEquipment && flagged;
 }
+
+const MAX_WEIGHT_BY_VEHICLE_SIZE = {
+  1: 4000,
+  2: 10000,
+  3: 26000,
+};
 
 function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHours }) {
   const pickup = shipment.stops.find((s) => s.stopType === "First Pickup");
@@ -67,7 +83,20 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
   if (!vehicleSize) {
     throw new Error(
       `No Sylectus vehicleSize mapped for trailerType "${shipment.trailerType}". ` +
-        `Add it to VEHICLE_SIZE_KEYWORDS in mapping.js.`
+        `Add it to classifyTrailer() in mapping.js.`
+    );
+  }
+
+  const totalWeight = (shipment.commodities || []).reduce((sum, c) => sum + (c.weightTotal || 0), 0);
+  const totalPieces = (shipment.commodities || []).reduce((sum, c) => sum + (c.piecesTotal || 0), 0);
+  const weightUOM = (shipment.weightUnits || "").toLowerCase() === "kg" ? 2 : 1;
+
+  const maxExpected = MAX_WEIGHT_BY_VEHICLE_SIZE[vehicleSize];
+  if (maxExpected && totalWeight > maxExpected) {
+    console.warn(
+      `Shipment ${shipment.shipmentId}: weight ${totalWeight} lbs looks high for trailerType ` +
+        `"${shipment.trailerType}" (vehicleSize ${vehicleSize}, expected under ~${maxExpected} lbs). ` +
+        `Posting anyway -- double check this one manually.`
     );
   }
 
@@ -76,12 +105,15 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
     refNum1: shipment.shipmentReferenceNumbers?.[0]?.value || "",
     equipmentNumber: "",
     vehicleSize,
+    quantity: String(totalPieces || 1),
+    weight: String(totalWeight || 0),
+    weightUOM,
     linehaulRate: String(shipment.totalSell ?? 0),
     fuelSurchargeRate: "0",
     totalRate: String(shipment.totalSell ?? 0),
     billingTerms: "3",
-    authPABContact: pickupCode,
-    billTo: pickupCode,
+    authPABContact: BILLING_CONTACT_CODE,
+    billTo: BILLING_CONTACT_CODE,
     pickup: {
       internalCustomerCode: pickupCode,
       scheduledDate: pickup.appointmentReadyDateTime || pickup.estimatedReadyDateTime,
