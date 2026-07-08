@@ -13,15 +13,20 @@ async function callSylectus(query) {
     body: query,
   });
 
-  const json = await res.json().catch(() => null);
-
-  if (!res.ok || !json) {
-    throw new Error(`Sylectus HTTP ${res.status}: ${JSON.stringify(json)}`);
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
   }
-  if (json.errors) {
+
+  if (!res.ok) {
+    throw new Error(`Sylectus HTTP ${res.status}: ${text}`);
+  }
+  if (json?.errors) {
     throw new Error(`Sylectus GraphQL error: ${JSON.stringify(json.errors)}`);
   }
-  return json.data;
+  return json?.data;
 }
 
 async function createOrder({ corpId, userId, order }) {
@@ -38,101 +43,3 @@ async function createOrder({ corpId, userId, order }) {
           rate: {
             fuelSurchargeRate: "${order.fuelSurchargeRate || "0"}"
             linehaulRate: "${order.linehaulRate || "0"}"
-            totalRate: "${order.totalRate || "0"}"
-            billingTerms: "${order.billingTerms || "3"}"
-            bookingSource: "3"
-            authPABContact: "${order.authPABContact}"
-            billTo: "${order.billTo}"
-            items: {
-              item: {
-                stopSequence: "1",
-                quantities: {
-                  quantity: "${escape(order.quantity || "1")}",
-                  quantityUOM: "${escape(order.quantityUOM || "PIECES")}"
-                },
-                weights: {
-                  weight: "${escape(order.weight || "0")}",
-                  weightQualifier: "1",
-                  weightUOM: ${order.weightUOM || 1}
-                }
-              }
-            }
-            stops: {
-              stopCount: "2"
-              stop: [
-                {
-                  stopSequence: "1"
-                  stopType: "Pickup"
-                  dates: { scheduledDate: "${order.pickup.scheduledDate}" }
-                  address: {
-                    name: "${escape(order.pickup.address.name)}"
-                    addrLine1: "${escape(order.pickup.address.addrLine1)}"
-                    city: "${escape(order.pickup.address.city)}"
-                    stateProvince: "${escape(order.pickup.address.stateProvince)}"
-                    postalCode: "${escape(order.pickup.address.postalCode)}"
-                    countryCode: "${escape(order.pickup.address.countryCode)}"
-                  }
-                }
-                {
-                  stopSequence: "2"
-                  stopType: "drop"
-                  dates: { scheduledDate: "${order.drop.scheduledDate}" }
-                  address: {
-                    name: "${escape(order.drop.address.name)}"
-                    addrLine1: "${escape(order.drop.address.addrLine1)}"
-                    city: "${escape(order.drop.address.city)}"
-                    stateProvince: "${escape(order.drop.address.stateProvince)}"
-                    postalCode: "${escape(order.drop.address.postalCode)}"
-                    countryCode: "${escape(order.drop.address.countryCode)}"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      }
-    )
-    { OrderID Status ErrorCode }
-  }`;
-
-  const data = await callSylectus(query);
-  return data.createOrder;
-}
-
-async function postOrder({ corpId, userId, proNumber, post }) {
-  const query = `mutation { postOrder
-    (
-      corpId: ${corpId},
-      userId: "${userId}",
-      proNumber: ${proNumber},
-      postTemplate: {
-        currencyType: "${post.currencyType || "U"}",
-        expiryDateTime: "${post.expiryDateTime}",
-        loadType: ${post.loadType},
-        notes: "${escape(post.notes || "")}",
-        postingAmount: ${post.postingAmount},
-        postToNewAuthority: ${post.postToNewAuthority !== false}
-      }
-    )
-    { OrderID Status ErrorCode }
-  }`;
-
-  const data = await callSylectus(query);
-  return data.postOrder;
-}
-
-async function unpostOrder({ corpId, userId, proNumbers }) {
-  const list = proNumbers.join(",");
-  const query = `mutation { unPostOrder
-    ( corpId: ${corpId}, userId: "${userId}", proNumber: [${list}] )
-    { OrderID Status ErrorCode }
-  }`;
-  const data = await callSylectus(query);
-  return data.unPostOrder;
-}
-
-function escape(str) {
-  return String(str).replace(/"/g, '\\"');
-}
-
-module.exports = { createOrder, postOrder, unpostOrder };
