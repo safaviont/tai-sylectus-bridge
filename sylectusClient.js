@@ -58,7 +58,7 @@ async function createOrder({ corpId, userId, order }) {
                 weights: {
                   weight: "${escape(order.weight || "0")}",
                   weightQualifier: "1",
-                  weightUOM: ${order.weightUOM || 1}
+                  weightUOM: "${order.weightUOM || 1}"
                 }
               }
             }
