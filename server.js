@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const fetch = require("node-fetch");
 const { mapShipmentToSylectusOrder, isEligibleForSylectus } = require("./mapping");
 const sylectus = require("./sylectusClient");
 const tai = require("./taiClient");
@@ -86,6 +87,81 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
 });
 
 app.get("/health", (req, res) => res.send("ok"));
+
+app.get("/whoami", async (req, res) => {
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipJson = await ipRes.json();
+    res.json({ outboundIp: ipJson.ip });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/test-sylectus", async (req, res) => {
+  const query = `mutation { createOrder
+    (
+      corpId: 15464,
+      userId: "AWOL",
+      orderTemplate: {
+        order: {
+          shipmentNumber: "render-diagnostic-test"
+          equipmentNumber: "TRACTOR",
+          vehicleSize: 3,
+          rate: {
+            fuelSurchargeRate: "50"
+            linehaulRate: "150"
+            totalRate: "200"
+            billingTerms: "3"
+            bookingSource: "3"
+            authPABContact: "207131"
+            billTo: "562249"
+            items: {
+              item: {
+                stopSequence: "1",
+                quantities: { quantity: "3", quantityUOM: "4" },
+                weights: { weight: "500", weightUOM: "1" }
+              }
+            }
+            stops: {
+              stopCount: "2"
+              stop: [
+                {
+                  stopSequence: "1"
+                  stopType: "Pickup"
+                  dates: { scheduledDate: "2026-07-24T10:00:00Z" }
+                  address: { name: "Ford Company XYZ" addrLine1: "123 Main Street" postalCode: "48309" }
+                }
+                {
+                  stopSequence: "2"
+                  stopType: "drop"
+                  dates: { scheduledDate: "2026-07-24T14:00:00Z" }
+                  address: { name: "Ford Company ABC" addrLine1: "333 Main Street" city: "Daallas" stateProvince: "TX" postalCode: "" countryCode: "USA" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    )
+    { OrderID Status ErrorCode }
+  }`;
+
+  try {
+    const fetchRes = await fetch(process.env.SYLECTUS_ORDERS_URL || "https://api.sylectus.com/orders/graphql/", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.SYLECTUS_API_KEY,
+        "Content-Type": "text/plain",
+      },
+      body: query,
+    });
+    const text = await fetchRes.text();
+    res.json({ status: fetchRes.status, body: text });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Tai <-> Sylectus bridge listening on port ${PORT}`);
