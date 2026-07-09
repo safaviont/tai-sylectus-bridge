@@ -77,7 +77,7 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
   const totalWeight = (shipment.commodities || []).reduce((sum, c) => sum + (c.weightTotal || 0), 0);
   const totalPieces = (shipment.commodities || []).reduce((sum, c) => sum + (c.piecesTotal || 0), 0);
   const weightUOM = (shipment.weightUnits || "").toLowerCase() === "kg" ? 2 : 1;
-  const quantityUOM = (shipment.commodities?.[0]?.packagingType || "PIECES").toUpperCase();
+  const quantityUOM = process.env.SYLECTUS_DEFAULT_QUANTITY_UOM || "4";
 
   const maxExpected = MAX_WEIGHT_BY_VEHICLE_SIZE[vehicleSize];
   if (maxExpected && totalWeight > maxExpected) {
