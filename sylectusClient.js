@@ -53,11 +53,10 @@ async function createOrder({ corpId, userId, order }) {
                 stopSequence: "1",
                 quantities: {
                   quantity: "${escape(order.quantity || "1")}",
-                  quantityUOM: "${escape(order.quantityUOM || "PIECES")}"
+                  quantityUOM: "${escape(order.quantityUOM || "4")}"
                 },
                 weights: {
                   weight: "${escape(order.weight || "0")}",
-                  weightQualifier: "1",
                   weightUOM: "${order.weightUOM || 1}"
                 }
               }
