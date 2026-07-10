@@ -11,6 +11,8 @@ app.use(express.json({ limit: "2mb" }));
 
 const PORT = process.env.PORT || 3000;
 
+const currentlyProcessing = new Set();
+
 app.use((req, res, next) => {
   console.log(`Incoming: ${req.method} ${req.path} | Authorization header: "${req.headers["authorization"]}"`);
   next();
@@ -44,6 +46,12 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
     if (postedStore.alreadyPosted(shipment.shipmentId)) {
       return;
     }
+
+    if (currentlyProcessing.has(shipment.shipmentId)) {
+      console.log(`Shipment ${shipment.shipmentId} is already being processed by a concurrent request -- skipping.`);
+      return;
+    }
+    currentlyProcessing.add(shipment.shipmentId);
 
     const { order, post } = mapShipmentToSylectusOrder(shipment, {
       defaultLoadType: Number(process.env.DEFAULT_SYLECTUS_LOAD_TYPE || 20),
@@ -90,8 +98,11 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
     }
   } catch (err) {
     console.error(`Failed to bridge shipment ${shipment?.shipmentId} to Sylectus:`, err.message);
+  } finally {
+    currentlyProcessing.delete(shipment?.shipmentId);
   }
 });
+
 app.get("/health", (req, res) => res.send("ok"));
 
 app.get("/whoami", async (req, res) => {
