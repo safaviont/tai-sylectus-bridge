@@ -152,11 +152,11 @@ app.get("/test-sylectus", async (req, res) => {
       method: "POST",
       headers: {
         "x-api-key": process.env.SYLECTUS_API_KEY,
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         "User-Agent": "TaiSylectusBridge/1.0 (+https://tai-sylectus-bridge.onrender.com)",
         "Accept": "*/*",
       },
-      body: query,
+      body: JSON.stringify({ query }),
     });
     const text = await fetchRes.text();
     res.json({ status: fetchRes.status, body: text });
