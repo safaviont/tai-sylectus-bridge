@@ -71,21 +71,27 @@ app.post("/webhooks/tai/shipment-update", requireAuth, async (req, res) => {
       throw new Error(`postOrder failed: ${posted.Status}`);
     }
 
-    await tai.updateFromLoadboard({
-      shipmentId: shipment.shipmentId,
-      referenceNumber: created.OrderID,
-    });
-
     postedStore.markPosted(shipment.shipmentId, created.OrderID);
-
     console.log(
-      `Shipment ${shipment.shipmentId} -> Sylectus order ${created.OrderID} posted and reference written back to Tai.`
+      `Shipment ${shipment.shipmentId} -> Sylectus order ${created.OrderID} created and posted successfully.`
     );
+
+    try {
+      await tai.updateFromLoadboard({
+        shipmentId: shipment.shipmentId,
+        referenceNumber: created.OrderID,
+      });
+      console.log(`Reference number also written back to Tai for shipment ${shipment.shipmentId}.`);
+    } catch (writeBackErr) {
+      console.warn(
+        `Sylectus order ${created.OrderID} created OK, but writing it back to Tai failed:`,
+        writeBackErr.message
+      );
+    }
   } catch (err) {
     console.error(`Failed to bridge shipment ${shipment?.shipmentId} to Sylectus:`, err.message);
   }
 });
-
 app.get("/health", (req, res) => res.send("ok"));
 
 app.get("/whoami", async (req, res) => {
