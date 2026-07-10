@@ -99,7 +99,11 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
 
   const toSylectusDate = (isoString) => {
     if (!isoString) return isoString;
-    return new Date(isoString).toISOString().replace(/\.\d+Z$/, "Z");
+    const date = new Date(isoString);
+    if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0) {
+      date.setUTCMinutes(1);
+    }
+    return date.toISOString().replace(/\.\d+Z$/, "Z");
   };
 
   const order = {
