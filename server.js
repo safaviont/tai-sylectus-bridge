@@ -153,6 +153,8 @@ app.get("/test-sylectus", async (req, res) => {
       headers: {
         "x-api-key": process.env.SYLECTUS_API_KEY,
         "Content-Type": "text/plain",
+        "User-Agent": "TaiSylectusBridge/1.0 (+https://tai-sylectus-bridge.onrender.com)",
+        "Accept": "*/*",
       },
       body: query,
     });
