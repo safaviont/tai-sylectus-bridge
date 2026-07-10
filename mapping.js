@@ -97,6 +97,11 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
     countryCode: stop.country || "USA",
   });
 
+  const toSylectusDate = (isoString) => {
+    if (!isoString) return isoString;
+    return new Date(isoString).toISOString().replace(/\.\d+Z$/, "Z");
+  };
+
   const order = {
     shipmentNumber: String(shipment.shipmentId),
     refNum1: shipment.shipmentReferenceNumbers?.[0]?.value || "",
@@ -114,11 +119,11 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
     billTo: BILLING_CONTACT_CODE,
     pickup: {
       address: toAddress(pickup),
-      scheduledDate: pickup.appointmentReadyDateTime || pickup.estimatedReadyDateTime,
+      scheduledDate: toSylectusDate(pickup.appointmentReadyDateTime || pickup.estimatedReadyDateTime),
     },
     drop: {
       address: toAddress(delivery),
-      scheduledDate: delivery.appointmentReadyDateTime || delivery.estimatedReadyDateTime,
+      scheduledDate: toSylectusDate(delivery.appointmentReadyDateTime || delivery.estimatedReadyDateTime),
     },
   };
 
