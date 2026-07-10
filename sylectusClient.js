@@ -101,6 +101,7 @@ async function createOrder({ corpId, userId, order }) {
     { OrderID Status ErrorCode }
   }`;
 
+  console.log("Exact query being sent to Sylectus:\n" + query);
   const data = await callSylectus(query);
   return data.createOrder;
 }
