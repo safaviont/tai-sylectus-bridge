@@ -8,11 +8,11 @@ async function callSylectus(query) {
     method: "POST",
     headers: {
       "x-api-key": API_KEY,
-      "Content-Type": "text/plain",
+      "Content-Type": "application/json",
       "User-Agent": "TaiSylectusBridge/1.0 (+https://tai-sylectus-bridge.onrender.com)",
       "Accept": "*/*",
     },
-    body: query,
+    body: JSON.stringify({ query }),
   });
 
   const text = await res.text();
