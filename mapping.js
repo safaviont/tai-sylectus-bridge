@@ -100,10 +100,22 @@ function mapShipmentToSylectusOrder(shipment, { defaultLoadType, defaultExpiryHo
   const toSylectusDate = (isoString) => {
     if (!isoString) return isoString;
     const date = new Date(isoString);
-    if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0) {
-      date.setUTCMinutes(1);
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+    const get = (type) => parts.find((p) => p.type === type).value;
+    let result = `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}Z`;
+    if (result.endsWith("T00:00:00Z")) {
+      result = result.replace("T00:00:00Z", "T00:01:00Z");
     }
-    return date.toISOString().replace(/\.\d+Z$/, "Z");
+    return result;
   };
 
   const order = {
