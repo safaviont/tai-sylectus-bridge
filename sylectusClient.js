@@ -9,6 +9,8 @@ async function callSylectus(query) {
     headers: {
       "x-api-key": API_KEY,
       "Content-Type": "text/plain",
+      "User-Agent": "TaiSylectusBridge/1.0 (+https://tai-sylectus-bridge.onrender.com)",
+      "Accept": "*/*",
     },
     body: query,
   });
